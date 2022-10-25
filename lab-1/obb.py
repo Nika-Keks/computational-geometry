@@ -62,7 +62,7 @@ class Poligon:
         v_len = len(self.v_list)
         def _next_one(index: int, call_back: tp.Callable):
             cur_val = call_back(self.v_list[index])
-            for next_index, val in enumerate(map(call_back, self.v_list[range(index+1-v_len,index)]), index):
+            for next_index, val in enumerate(map(call_back, self.v_list[range(index+1-v_len,index+1)]), index):
                 if val < cur_val:
                     break
                 cur_val = val
@@ -73,10 +73,10 @@ class Poligon:
         way = self._get_support_side(cur_idxs[0]+1)
         norm_way = np.array([way[1], -way[0]])
 
+        next_idxs[0] = (cur_idxs[0] + 1) % v_len
         next_idxs[1] = _next_one(cur_idxs[1], lambda v: (v - self.v_list[cur_idxs[0]]).dot(way))
         next_idxs[2] = _next_one(cur_idxs[2], lambda v: np.abs((v - self.v_list[cur_idxs[0]]).dot(norm_way)))
         next_idxs[3] = _next_one(cur_idxs[3], lambda v: -(v - self.v_list[cur_idxs[0]]).dot(way))
-        next_idxs[0] = (cur_idxs[0] + 1) % v_len
 
         return next_idxs
 
@@ -92,8 +92,9 @@ class Poligon:
         norm_support_side = np.array([support_side[1], -support_side[0]])
 
         width_d = self.v_list[idxs[1]] - self.v_list[idxs[3]]
+        hight_d = self.v_list[idxs[2]] - self.v_list[idxs[0] - 1]
 
-        a = np.abs((self.v_list[idxs[2]] - self.v_list[idxs[0] - 1]).dot(norm_support_side))
+        a = np.abs(hight_d.dot(norm_support_side))
         b = np.abs(width_d.dot(support_side))
         
         return self.criterion(a, b)
