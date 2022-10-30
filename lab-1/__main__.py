@@ -13,7 +13,7 @@ criterions = {
 def main(args):
 
     # read input
-    infile = open(args.inout, "r")
+    infile = open(args.input, "r")
     v_list = np.array([[int(x) for x in line.replace(" ", "").split(",")] for line in infile])
     infile.close()
 
@@ -29,7 +29,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("inout", type=str, help="input file")
+    parser.add_argument("input", type=str, help="input file")
     parser.add_argument("-o", "--output", type=str, default="out-obb", help="output file")
     parser.add_argument("-c", "--criterion", type=str, choices=criterions.keys(), default="perimeter", help=f"criterion type {criterions.keys()}")
     
