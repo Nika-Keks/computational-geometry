@@ -1,4 +1,4 @@
 __pycache__
 sandbox*
-.ipynd*
+*.ipynb*
 test-1
