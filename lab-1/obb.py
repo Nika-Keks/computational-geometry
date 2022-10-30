@@ -60,14 +60,17 @@ class Poligon:
     def _next_idxs(self, cur_idxs: npt.NDArray):
 
         v_len = len(self.v_list)
+        
         def _next_one(index: int, call_back: tp.Callable):
             cur_val = call_back(self.v_list[index])
-            for next_index, val in enumerate(map(call_back, self.v_list[range(index+1-v_len,index+1)]), index):
+            for next_index, v_index in enumerate(range(index+1-v_len,index+1), index):
+                val = call_back(self.v_list[v_index])
                 if val < cur_val:
                     break
                 cur_val = val
 
             return (next_index) % v_len
+
 
         next_idxs = np.zeros_like(cur_idxs)
         way = self._get_support_side(cur_idxs[0]+1)
