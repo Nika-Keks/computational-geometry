@@ -91,7 +91,7 @@ class Poligon:
         if ss_norm == 0:
             raise ValueError("There are identical vertices in the input array")
 
-        support_side = support_side.astype(np.float) / np.sqrt(float(ss_norm))
+        support_side = support_side.astype(np.float64) / np.sqrt(np.float64(ss_norm))
         norm_support_side = np.array([support_side[1], -support_side[0]])
 
         width_d = self.v_list[idxs[1]] - self.v_list[idxs[3]]
