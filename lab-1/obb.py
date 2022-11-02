@@ -13,18 +13,21 @@ algoritm:
 
 import numpy as np
 import typing as tp
+import utils as mutils
 
 from numpy import typing as npt
+
 
 
 __all__ = ["Poligon"]
 
 class Poligon:
 
-    def __init__(self, vertex_list: np.ndarray, criterion = lambda a, b: a + b) -> None:
+    def __init__(self, vertex_list: np.ndarray, criterion = lambda a, b: a + b, verbose=False) -> None:
         
         self.v_list = vertex_list.astype(np.int64)
         self.criterion = criterion
+        self.verbose = verbose
 
 
     def get_obb(self):
@@ -33,9 +36,15 @@ class Poligon:
         min_idxs = np.copy(start_idxs)
         min_cval = self._get_criterion(min_idxs)
         cur_idxs = self._next_idxs(start_idxs)
+        
+        if self.verbose:
+                mutils.plot_obb(self.v_list, min_idxs, f"c = {min_cval: .3f}, ids={min_idxs}")
 
         while cur_idxs[0] != start_idxs[0]:
             cur_cval = self._get_criterion(cur_idxs)
+
+            if self.verbose:
+                mutils.plot_obb(self.v_list, cur_idxs, f"c = {cur_cval}, ids={cur_idxs}")
 
             if cur_cval < min_cval:
                 min_cval = cur_cval
