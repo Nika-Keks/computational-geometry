@@ -1,13 +1,12 @@
 import argparse
-from ast import arg
 import sys
 import numpy as np
 
 from . import obb
 
 criterions = {
-    "square": lambda a, b: a * b,
-    "perimeter": lambda a, b: a + b
+    "square": obb._square,
+    "perimeter": obb._perimeter
 }
 
 def main(args):

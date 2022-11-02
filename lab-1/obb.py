@@ -13,17 +13,39 @@ algoritm:
 
 import numpy as np
 import typing as tp
-import utils as mutils
+import fractions as fr
 
 from numpy import typing as npt
+
+from  . import utils as mutils
 
 
 
 __all__ = ["Poligon"]
 
+def _perimeter(obb_v: npt.NDArray):
+        
+    wd = obb_v[0] - obb_v[1]
+    hd = obb_v[1] - obb_v[2]
+    hd = np.array([hd[1], -hd[0]])
+    hd = hd * int(np.sign(wd.dot(hd)))
+
+    sum_len = hd + wd
+
+    return sum_len.dot(sum_len)
+    
+def _square(obb_v: npt.NDArray):
+
+    wd = obb_v[0] - obb_v[1]
+    hd = obb_v[1] - obb_v[2]
+
+    return wd.dot(wd) * hd.dot(hd)
+
+
+
 class Poligon:
 
-    def __init__(self, vertex_list: np.ndarray, criterion = lambda a, b: a + b, verbose=False) -> None:
+    def __init__(self, vertex_list: np.ndarray, criterion = _perimeter, verbose=False) -> None:
         
         self.v_list = vertex_list.astype(np.int64)
         self.criterion = criterion
@@ -38,7 +60,7 @@ class Poligon:
         cur_idxs = self._next_idxs(start_idxs)
         
         if self.verbose:
-                mutils.plot_obb(self.v_list, min_idxs, f"c = {min_cval: .3f}, ids={min_idxs}")
+                mutils.plot_obb(self.v_list, min_idxs, f"c = {min_cval}, ids={min_idxs}")
 
         while cur_idxs[0] != start_idxs[0]:
             cur_cval = self._get_criterion(cur_idxs)
@@ -100,19 +122,49 @@ class Poligon:
         if ss_norm == 0:
             raise ValueError("There are identical vertices in the input array")
 
-        support_side = support_side.astype(np.float64) / np.sqrt(np.float64(ss_norm))
         norm_support_side = np.array([support_side[1], -support_side[0]])
-
-        width_d = self.v_list[idxs[1]] - self.v_list[idxs[3]]
-        hight_d = self.v_list[idxs[2]] - self.v_list[idxs[0] - 1]
-
-        a = np.abs(hight_d.dot(norm_support_side))
-        b = np.abs(width_d.dot(support_side))
         
-        return self.criterion(a, b)
+        idxs_vertes = self.v_list[idxs]
+        obb_vertes = Poligon._get_obb_vertes(support_side, norm_support_side, idxs_vertes)
+
+        return self.criterion(obb_vertes)
 
     def _get_support_side(self, index):
+        
         v_len = len(self.v_list)
 
-        return self.v_list[index % v_len] - self.v_list[(index-1)%v_len]
+        return self.v_list[index % v_len] - self.v_list[(index-1)%v_len] 
+
+    def _get_obb_vertes(support_side: npt.NDArray, norm_support_side: npt.NDArray, s_vertes: npt.NDArray):
         
+        obb_vertes = []
+        ss, nss = np.copy(support_side), np.copy(norm_support_side)
+        
+        for v1, v2 in zip(s_vertes, s_vertes[range(-1, 3)]):
+            mA = np.array([nss, ss])
+            vb = np.array([nss.dot(v1), ss.dot(v2)])  
+            vx = Poligon._solve_Ax_b_2x2(mA, vb)
+            obb_vertes.append(vx)
+            ss, nss = nss, ss
+
+        return obb_vertes     
+
+    def _det2x2(m: npt.NDArray):
+        
+        return m[0, 0] * m[1, 1] - m[0, 1] * m[1, 0]
+
+    def _solve_Ax_b_2x2(mA: npt.NDArray, vb: npt.NDArray):
+        
+        mA = mA + fr.Fraction(0)
+        vb = vb + fr.Fraction(0)
+
+        mA_det = Poligon._det2x2(mA)
+        x = np.zeros_like(vb)
+        x[0] = Poligon._det2x2(np.array([vb, mA[:, 1]])) / mA_det
+        x[1] = Poligon._det2x2(np.array([mA[:, 0], vb])) / mA_det
+
+        return x
+
+
+
+    
