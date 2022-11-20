@@ -1,13 +1,10 @@
 import numpy as np
 import numpy.typing as npt
-import typing as tp
 import fractions as fr
 
 from collections import deque
 from matplotlib import pyplot as plt 
 
-def _det2x2(matrix: npt.NDArray):
-    return matrix[0, 0] * matrix[1, 1] - matrix[0, 1] * matrix[1, 0]
 
 def _det3x3(matrix: npt.NDArray):
     x = (matrix[0, 0] * matrix[1, 1] * matrix[2, 2]) + (matrix[1, 0] * matrix[2, 1] * matrix[0, 2]) + (matrix[2, 0] * matrix[0, 1] * matrix[1, 2])
@@ -34,15 +31,16 @@ class _SentralVertex:
         res = a._det(c)
         _SentralVertex.center = tmp_cen
         
-        return res
+        return res >= 0
 
     def _det(self, other):
         return _det3x3(np.stack([self.vec3(), other.vec3(), np.array([0, 0, 1])]))
 
     def __gt__(self, other) -> bool:
-        if self._det(other) > 0:
+        mdet = self._det(other)
+        if mdet > 0:
             return True
-        elif self.vec3().dot(self.vec3()) > other.vec3().dot(other.vec3()):
+        elif mdet == 0 and self.vec3().dot(self.vec3()) > other.vec3().dot(other.vec3()):
             return True
         return False
 
@@ -71,7 +69,22 @@ class PointSet:
         self.vlist = [_SentralVertex(v, i) for i, v in enumerate(vlist)]
 
     def min_splane(self):
-        pass
+        mhull = self.chull()
+        center = self._get_center()
+
+        min_val = float("inf")
+        min_idx = -1
+        for i in range(len(mhull)):
+            x1 = mhull[i-1].v
+            x2 = mhull[i].v
+            norm = self._get_line_param(x1, x2)[0] + fr.Fraction()
+            val = norm.dot(center - x1)**2 / norm.dot(norm)
+            if min_val > val:
+                min_val = val
+                min_idx = i
+
+        return mhull[min_idx-1].idx, mhull[min_idx].idx 
+
 
     def chull(self):
         q = self._get_iner_point()
@@ -83,39 +96,70 @@ class PointSet:
         _SentralVertex.center = np.zeros((2))
         
         stack = deque()
+        stack.append(q)
         stack.append(self.vlist[0])
-        stack.append(self.vlist[1])
-        for v3 in self.vlist[2:]:
-            v2 = stack[-2]
-            v1 = stack[-1]
-            while _SentralVertex.is_right(v1, v2, v3):
+        for v3 in self.vlist[1:]:
+            v2 = stack[-1]
+            v1 = stack[-2]
+            while not _SentralVertex.is_right(v1, v2, v3):
                 stack.pop()
-                v2 = stack[-2]
-                v1 = stack[-1]
+                v2 = stack[-1]
+                v1 = stack[-2]
             stack.append(v3)
         
-        return stack
+        self.vlist.append(q)
+        return list(stack)
+
+    def _get_line_param(self, x1: npt.NDArray, x2: npt.NDArray):
+        
+        norm = x1 - x2
+        norm[1] *= -1
+        
+        return norm, -norm.dot(x1)
 
     def _get_iner_point(self):
         
-        v1, v2 = self.vlist[:2]
-        for i in range(2, len(self.vlist)):
-            v3 = self.vlist[i]
-            if _det2x2(np.stack([v1.v - v3.v, v2.v - v3.v])) != 0:
-                break
+        min_q = self.vlist[0]
+        for v in self.vlist[1:]:
+            if min_q.v[1] > v.v[1] or (min_q.v[1] == v.v[1] and min_q.v[0] > v.v[0]):
+                min_q = v
         
-        v1, v2, v3 = [self.vlist[k] for k in [1, 2, i]]
+        return min_q
 
-        return _SentralVertex((v1.v + v2.v + v3.v + fr.Fraction()) / 3)
-
+    def _get_center(self):
+        
+        ncenter = np.sum([v.v for v in self.vlist], axis=0) + fr.Fraction()
+        center = ncenter / len(self.vlist)
+        
+        return center
+        
     def rplot(self):
+
+        q = self._get_iner_point()
+        if q in self.vlist:
+            self.vlist.remove(q)
+        
+        _SentralVertex.center = q.v
+        self.vlist.sort()
+        _SentralVertex.center = np.zeros((2))
+        self.vlist.append(q)
+
         plt.figure()
         
         allcord = np.array([sv.v for sv in self.vlist])
-        marks = [str(i) for i, sv in enumerate(self.vlist)]
-        plt.scatter(allcord[:, 0], allcord[:, 1], marker=marks)
+        ann = [str(i) for i, sv in enumerate(self.vlist)]
+        plt.scatter(allcord[:, 0], allcord[:, 1])
+        for i, x in enumerate(allcord):
+             plt.annotate(str(i), x)
+        
+        plt.scatter([q.v[0]], [q.v[1]])
         
         mhull = self.chull()
-        cord = np.array([sv.v for sv in mhull])
-        plt.scatter(cord[:,0], cord[:, 1], marker="h")
+        hcord = np.array([v.v for v in mhull])
+        plt.fill(hcord[:, 0], hcord[:, 1], fill=False)
+        
+        cen = self._get_center()
+        plt.scatter([cen[0]], [cen[1]])
+        print(self.min_splane())
+
         plt.show()
