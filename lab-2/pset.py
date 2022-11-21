@@ -112,7 +112,7 @@ class PointSet:
 
     def _get_line_param(self, x1: npt.NDArray, x2: npt.NDArray):
         
-        norm = x1 - x2
+        norm = (x1 - x2)[::-1]
         norm[1] *= -1
         
         return norm, -norm.dot(x1)
@@ -145,7 +145,7 @@ class PointSet:
         self.vlist.append(q)
 
         plt.figure()
-        
+        plt.grid()
         allcord = np.array([sv.v for sv in self.vlist])
         ann = [str(i) for i, sv in enumerate(self.vlist)]
         plt.scatter(allcord[:, 0], allcord[:, 1])
